@@ -16,6 +16,10 @@ import {
 import { Badge } from "../../components/ui/badge";
 import { Calendar, Users, User, Baby, CreditCard } from "lucide-react";
 
+// Import tambahan untuk menghandle dynamic pricing engine
+import { useQuery } from "react-query";
+import * as apiClient from "../../api-client";
+
 type Props = {
   hotelId: string;
   pricePerNight: number;
@@ -52,13 +56,29 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
   const checkIn = watch("checkIn");
   const checkOut = watch("checkOut");
 
-  // Calculate number of nights
+  // Perhitungan statis lokal sebagai cadangan (fallback) sebelum server merespons
   let numberOfNights = 1;
   if (checkIn && checkOut) {
     const diff = checkOut.getTime() - checkIn.getTime();
     numberOfNights = Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   }
-  const totalPrice = pricePerNight * numberOfNights;
+  const fallbackTotalPrice = pricePerNight * numberOfNights;
+
+  // FETCHING HARGA DINAMIS DARI BACKEND API
+  const { data: pricingData, isLoading: isPricingLoading } = useQuery(
+    ["calculatePrice", hotelId, checkIn, checkOut],
+    () =>
+      apiClient.calculateDynamicPrice({
+        hotelId,
+        checkIn: checkIn.toISOString(),
+        checkOut: checkOut.toISOString(),
+      }),
+    {
+      // Hanya berjalan jika hotelId ada dan kedua tanggal sudah dipilih secara valid
+      enabled: !!hotelId && !!checkIn && !!checkOut && checkIn < checkOut,
+      keepPreviousData: true,
+    }
+  );
 
   const minDate = new Date();
   const maxDate = new Date();
@@ -156,20 +176,33 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Price Display */}
-          <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-600">
-                £{pricePerNight} × {numberOfNights} night
-                {numberOfNights > 1 ? "s" : ""}
-              </span>
-            </div>
-            <div className="text-right">
-              <div className="text-2xl font-bold text-blue-600">
-                £{totalPrice}
+          {/* Dynamic Price Display */}
+          <div className="p-4 bg-white rounded-lg border border-gray-100 shadow-sm space-y-2">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">
+                  £{pricePerNight} × {pricingData?.totalNights || numberOfNights} night
+                  {(pricingData?.totalNights || numberOfNights) > 1 ? "s" : ""}
+                </span>
               </div>
-              <div className="text-xs text-gray-500">Total Price</div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-blue-600">
+                  {isPricingLoading ? (
+                    <span className="text-sm font-normal text-gray-400 animate-pulse">Recalculating...</span>
+                  ) : (
+                    `£${pricingData?.totalCost || fallbackTotalPrice}`
+                  )}
+                </div>
+                <div className="text-xs text-gray-500">Total Price</div>
+              </div>
             </div>
+            
+            {/* Tampilan rincian skema kenaikan tarif akhir pekan */}
+            {pricingData?.breakdown && (
+              <div className="text-xs text-indigo-600 bg-indigo-50/70 p-2 rounded border border-indigo-100 italic">
+                * {pricingData.breakdown.replace("Rp", "£")}
+              </div>
+            )}
           </div>
 
           <form
@@ -275,7 +308,8 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
             {/* Action Button */}
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+              disabled={isPricingLoading}
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-lg shadow-lg transform transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
             >
               {isLoggedIn ? (
                 <div className="flex items-center gap-2">

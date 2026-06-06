@@ -49,8 +49,8 @@ const SearchResultsCard = ({ hotel }: Props) => {
 
           {/* Overlay Badges */}
           <div className="absolute top-4 left-4 flex flex-col space-y-2">
-            <div className="bg-primary-600 text-white rounded-full px-3 py-1">
-              <span className="text-sm font-bold">£{hotel.pricePerNight}</span>
+            <div className={`${hotel.hasDynamicPricing ? 'bg-purple-600' : 'bg-primary-600'} text-white rounded-full px-3 py-1 transition-colors duration-300`}>
+              <span className="text-sm font-bold">£{hotel.pricePerNight}/night</span>
             </div>
             {hotel.isFeatured && (
               <div className="bg-yellow-500 text-white rounded-full px-3 py-1">
@@ -103,8 +103,8 @@ const SearchResultsCard = ({ hotel }: Props) => {
               </div>
 
               <Link
-                to={`/detail/${hotel._id}`}
-                className="text-2xl font-bold text-gray-900 hover:text-primary-600 transition-colors cursor-pointer"
+                to={`/detail/${hotel._id}${window.location.search}`}
+                className="text-2xl font-bold text-gray-900 hover:text-primary-600 transition-colors cursor-pointer block"
               >
                 {hotel.name}
               </Link>
@@ -142,8 +142,8 @@ const SearchResultsCard = ({ hotel }: Props) => {
           </div>
 
           {/* Facilities */}
-          <div className="mt-6">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-2">
               Key Amenities
             </h4>
             <div className="flex flex-wrap gap-2">
@@ -163,11 +163,41 @@ const SearchResultsCard = ({ hotel }: Props) => {
             </div>
           </div>
 
-          {/* Action Button */}
-          <div className="mt-6 pt-4 border-t border-gray-100">
+          {/* Action Button & Dynamic Pricing Display */}
+          <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+            <div className="flex flex-col">
+              {hotel.hasDynamicPricing && hotel.dynamicTotalCost ? (
+                <>
+                  <span className="text-[11px] font-bold text-purple-600 uppercase tracking-wider mb-0.5">
+                    Total Tarif Dinamis
+                  </span>
+                  <div className="flex items-baseline space-x-1.5">
+                    <span className="text-3xl font-black text-purple-700">
+                      £{hotel.dynamicTotalCost}
+                    </span>
+                    <span className="text-xs text-gray-400 font-medium">
+                      (Termasuk weekend)
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">
+                    Estimasi Mulai Dari
+                  </span>
+                  <div className="flex items-baseline space-x-1">
+                    <span className="text-2xl font-bold text-gray-900">
+                      £{hotel.pricePerNight}
+                    </span>
+                    <span className="text-xs text-gray-500 font-medium">/malam</span>
+                  </div>
+                </>
+              )}
+            </div>
+
             <Link
-              to={`/detail/${hotel._id}`}
-              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-6 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transform hover:scale-105 transition-all duration-200 text-center block"
+              to={`/detail/${hotel._id}${window.location.search}`}
+              className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-6 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-center sm:w-auto w-full block min-w-[180px]"
             >
               View Details & Book
             </Link>

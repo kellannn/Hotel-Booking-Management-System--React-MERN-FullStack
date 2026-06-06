@@ -10,7 +10,7 @@ type Props = {
 const LatestDestinationCard = ({ hotel }: Props) => {
   return (
     <Link
-      to={`/detail/${hotel._id}`}
+      to={`/detail/${hotel._id}${window.location.search}`}
       className="group relative cursor-pointer overflow-hidden rounded-2xl shadow-soft transition-all duration-300 hover:shadow-large hover:scale-105 bg-white flex flex-col w-full h-[350px] border border-gray-10"
       style={{ minWidth: 320, maxWidth: 500 }}
     >
@@ -34,16 +34,27 @@ const LatestDestinationCard = ({ hotel }: Props) => {
           </div>
         </div>
 
-        {/* Price Badge */}
+        {/* Price Badge (Adaptif Terhadap Weekend Dynamic Pricing) */}
         <div className="absolute top-4 left-4">
-          <div className="bg-primary-600 text-white rounded-full px-3 py-1">
-            <span className="text-sm font-bold">£{hotel.pricePerNight}</span>
+          <div className={`${hotel.hasDynamicPricing ? 'bg-purple-600' : 'bg-primary-600'} text-white rounded-full px-3 py-1 shadow-md transition-colors duration-300`}>
+            <span className="text-sm font-bold">
+              {hotel.hasDynamicPricing && hotel.dynamicTotalCost
+                ? `£${hotel.dynamicTotalCost} Total`
+                : `£${hotel.pricePerNight}/night`}
+            </span>
           </div>
         </div>
       </div>
 
       <div className="absolute bottom-0 p-6 w-full">
         <div className="space-y-2">
+          {/* Badge Penanda Harga Akhir Pekan Aktif */}
+          {hotel.hasDynamicPricing && (
+            <span className="inline-block bg-purple-500/80 backdrop-blur-sm text-[10px] font-bold text-white uppercase tracking-wider px-2 py-0.5 rounded-md mb-1">
+              Weekend Rate Applied
+            </span>
+          )}
+
           <h3 className="text-white font-bold text-2xl tracking-tight group-hover:text-primary-200 transition-colors">
             {hotel.name}
           </h3>
@@ -96,7 +107,7 @@ const LatestDestinationCard = ({ hotel }: Props) => {
               </div>
             </div>
 
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1 hover:bg-white/30 transition-colors">
+            <div className={`${hotel.hasDynamicPricing ? 'bg-purple-600/40 hover:bg-purple-600/60' : 'bg-white/20 hover:bg-white/30'} backdrop-blur-sm rounded-lg px-3 py-1 transition-colors`}>
               <span className="text-sm font-semibold text-white">
                 View Details
               </span>

@@ -6,6 +6,8 @@ import { BookingType, HotelSearchResponse } from "../../../shared/types";
 import { param, validationResult } from "express-validator";
 import Stripe from "stripe";
 import verifyToken from "../middleware/auth";
+// Import engine perhitungan harga dinamis akhir pekan
+import { calculateDynamicTotalCost } from "../utils/pricingEngine";
 
 const stripe = new Stripe(process.env.STRIPE_API_KEY as string);
 
@@ -41,8 +43,31 @@ router.get("/search", async (req: Request, res: Response) => {
 
     const total = await Hotel.countDocuments(query);
 
+    // PETA HARGA DINAMIS: Konversi dokumen Mongoose menjadi objek biasa untuk disisipi tarif baru
+    const hotelsWithDynamicPricing = hotels.map((hotel) => {
+      const hotelObj = hotel.toObject();
+      
+      // Jika user menyertakan rentang tanggal pemesanan saat mencari hotel
+      if (req.query.checkIn && req.query.checkOut) {
+        const weekendMultiplier = 1.2; // Kenaikan weekend 20%
+        
+        const totalCost = calculateDynamicTotalCost(
+          req.query.checkIn.toString(),
+          req.query.checkOut.toString(),
+          hotel.pricePerNight,
+          weekendMultiplier
+        );
+        
+        hotelObj.dynamicTotalCost = totalCost;
+        hotelObj.hasDynamicPricing = true;
+      } else {
+        hotelObj.hasDynamicPricing = false;
+      }
+      return hotelObj;
+    });
+
     const response: HotelSearchResponse = {
-      data: hotels,
+      data: hotelsWithDynamicPricing as any, // Dilemparkan bersama data kalkulasi baru
       pagination: {
         total,
         page: pageNumber,
@@ -60,7 +85,26 @@ router.get("/search", async (req: Request, res: Response) => {
 router.get("/", async (req: Request, res: Response) => {
   try {
     const hotels = await Hotel.find().sort("-lastUpdated");
-    res.json(hotels);
+    
+    // Aktifkan dukungan harga dinamis di beranda jika user memicu parameter tanggal lebih awal
+    const hotelsWithDynamicPricing = hotels.map((hotel) => {
+      const hotelObj = hotel.toObject();
+      if (req.query.checkIn && req.query.checkOut) {
+        const totalCost = calculateDynamicTotalCost(
+          req.query.checkIn.toString(),
+          req.query.checkOut.toString(),
+          hotel.pricePerNight,
+          1.2
+        );
+        hotelObj.dynamicTotalCost = totalCost;
+        hotelObj.hasDynamicPricing = true;
+      } else {
+        hotelObj.hasDynamicPricing = false;
+      }
+      return hotelObj;
+    });
+
+    res.json(hotelsWithDynamicPricing);
   } catch (error) {
     console.log("error", error);
     res.status(500).json({ message: "Error fetching hotels" });
@@ -80,7 +124,23 @@ router.get(
 
     try {
       const hotel = await Hotel.findById(id);
-      res.json(hotel);
+      if (!hotel) {
+        return res.status(404).json({ message: "Hotel not found" });
+      }
+      
+      const hotelObj = hotel.toObject();
+      if (req.query.checkIn && req.query.checkOut) {
+        const totalCost = calculateDynamicTotalCost(
+          req.query.checkIn.toString(),
+          req.query.checkOut.toString(),
+          hotel.pricePerNight,
+          1.2
+        );
+        hotelObj.dynamicTotalCost = totalCost;
+        hotelObj.hasDynamicPricing = true;
+      }
+      
+      res.json(hotelObj);
     } catch (error) {
       console.log(error);
       res.status(500).json({ message: "Error fetching hotel" });
@@ -92,7 +152,8 @@ router.post(
   "/:hotelId/bookings/payment-intent",
   verifyToken,
   async (req: Request, res: Response) => {
-    const { numberOfNights } = req.body;
+    // Tangkap checkIn dan checkOut dari body request frontend
+    const { numberOfNights, checkIn, checkOut } = req.body;
     const hotelId = req.params.hotelId;
 
     const hotel = await Hotel.findById(hotelId);
@@ -100,10 +161,16 @@ router.post(
       return res.status(400).json({ message: "Hotel not found" });
     }
 
-    const totalCost = hotel.pricePerNight * numberOfNights;
+    // HITUNG HARGA DINAMIS RIIL UNTUK STRIPE
+    const totalCost = calculateDynamicTotalCost(
+      checkIn,
+      checkOut,
+      hotel.pricePerNight,
+      1.2 // Multiplier weekend 20%
+    );
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: totalCost * 100,
+      amount: Math.round(totalCost * 100),// Stripe menggunakan satuan sen/pice
       currency: "gbp",
       metadata: {
         hotelId,
@@ -118,7 +185,7 @@ router.post(
     const response = {
       paymentIntentId: paymentIntent.id,
       clientSecret: paymentIntent.client_secret.toString(),
-      totalCost,
+      totalCost, // Mengembalikan total cost dinamis ke frontend
     };
 
     res.send(response);
@@ -157,16 +224,14 @@ router.post(
         ...req.body,
         userId: req.userId,
         hotelId: req.params.hotelId,
-        createdAt: new Date(), // Add booking creation timestamp
-        status: "confirmed", // Set initial status
-        paymentStatus: "paid", // Set payment status since payment succeeded
+        createdAt: new Date(),
+        status: "confirmed",
+        paymentStatus: "paid",
       };
 
-      // Create booking in separate collection
       const booking = new Booking(newBooking);
       await booking.save();
 
-      // Update hotel analytics
       await Hotel.findByIdAndUpdate(req.params.hotelId, {
         $inc: {
           totalBookings: 1,
@@ -174,7 +239,6 @@ router.post(
         },
       });
 
-      // Update user analytics
       await User.findByIdAndUpdate(req.userId, {
         $inc: {
           totalBookings: 1,

@@ -38,7 +38,9 @@ const Booking = () => {
     () =>
       apiClient.createPaymentIntent(
         hotelId as string,
-        numberOfNights.toString()
+        numberOfNights.toString(),
+        search.checkIn.toISOString(),
+        search.checkOut.toISOString()
       ),
     {
       enabled: !!hotelId && numberOfNights > 0,

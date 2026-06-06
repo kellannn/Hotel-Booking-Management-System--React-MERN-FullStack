@@ -197,11 +197,13 @@ export const fetchHotelById = async (hotelId: string): Promise<HotelType> => {
 
 export const createPaymentIntent = async (
   hotelId: string,
-  numberOfNights: string
+  numberOfNights: string,
+  checkIn: string,  // Tambahkan parameter ini
+  checkOut: string  // Tambahkan parameter ini
 ): Promise<PaymentIntentResponse> => {
   const response = await axiosInstance.post(
     `/api/hotels/${hotelId}/bookings/payment-intent`,
-    { numberOfNights }
+    { numberOfNights, checkIn, checkOut } // Kirimkan datanya ke backend
   );
   return response.data;
 };
@@ -239,5 +241,25 @@ export const fetchBusinessInsightsForecast = async () => {
 
 export const fetchBusinessInsightsPerformance = async () => {
   const response = await axiosInstance.get("/api/business-insights/system-stats/public");
+  return response.data;
+};
+
+export interface CalculatePriceRequest {
+  hotelId: string;
+  checkIn: string;
+  checkOut: string;
+}
+
+export interface CalculatePriceResponse {
+  basePricePerNight: number;
+  totalNights: number;
+  totalCost: number;
+  breakdown: string;
+}
+
+export const calculateDynamicPrice = async (
+  request: CalculatePriceRequest
+): Promise<CalculatePriceResponse> => {
+  const response = await axiosInstance.post("/api/bookings/calculate-price", request);
   return response.data;
 };

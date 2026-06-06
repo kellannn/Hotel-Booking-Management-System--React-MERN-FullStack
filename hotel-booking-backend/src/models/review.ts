@@ -1,7 +1,7 @@
 import mongoose, { Document } from "mongoose";
 
 export interface IReview extends Document {
-  _id: string;
+  _id: mongoose.Types.ObjectId; // <-- Sudah diperbaiki dari string menjadi ObjectId
   userId: string;
   hotelId: string;
   bookingId: string;

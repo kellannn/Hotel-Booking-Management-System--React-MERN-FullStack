@@ -4,6 +4,7 @@ import Hotel from "../models/hotel";
 import User from "../models/user";
 import verifyToken from "../middleware/auth";
 import { body, param, validationResult } from "express-validator";
+import { calculateDynamicTotalCost } from "../utils/pricingEngine";
 
 const router = express.Router();
 
@@ -186,5 +187,62 @@ router.delete("/:id", verifyToken, async (req: Request, res: Response) => {
     res.status(500).json({ message: "Unable to delete booking" });
   }
 });
+
+// Perhitungan Harga Dinamis untuk Kalender Frontend
+router.post(
+  "/calculate-price",
+  [
+    body("hotelId").notEmpty().withMessage("Hotel ID wajib diisi"),
+    body("checkIn").notEmpty().withMessage("Tanggal check-in wajib diisi"),
+    body("checkOut").notEmpty().withMessage("Tanggal check-out wajib diisi"),
+  ],
+  async (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    try {
+      const { hotelId, checkIn, checkOut } = req.body;
+
+      // 1. Cari data hotel untuk mengambil harga dasarnya (pricePerNight)
+      const hotel = await Hotel.findById(hotelId);
+      if (!hotel) {
+        return res.status(404).json({ message: "Hotel tidak ditemukan" });
+      }
+
+      // Ambil harga dasar dari properti skema hotel kamu
+      const basePrice = hotel.pricePerNight; 
+      
+      // Kenaikan weekend diatur sebesar 20% (multiplier: 1.2)
+      const weekendMultiplier = 1.2; 
+
+      // 2. Hitung total biaya menggunakan utilitas pricing engine
+      const totalCost = calculateDynamicTotalCost(
+        checkIn,
+        checkOut,
+        basePrice,
+        weekendMultiplier
+      );
+
+      // Hitung total malam untuk informasi tambahan di frontend
+      const totalNights = Math.ceil(
+        (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      // 3. Kembalikan respons data harga ke frontend
+      res.status(200).json({
+        basePricePerNight: basePrice,
+        totalNights,
+        totalCost,
+        breakdown: `Tarif normal: Rp${basePrice.toLocaleString()}, tarif akhir pekan naik 20%`
+      });
+
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ message: "Gagal menghitung harga dinamis" });
+    }
+  }
+);
 
 export default router;

@@ -93,6 +93,8 @@ export type HotelType = {
   isFeatured?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
+  dynamicTotalCost?: number;
+  hasDynamicPricing?: boolean;
 };
 
 export type BookingType = {

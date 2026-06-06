@@ -1,6 +1,7 @@
 import mongoose, { Document } from "mongoose";
 
-export interface IBooking extends Document {
+// Menggunakan Omit<Document, "_id"> untuk membuang _id bawaan Mongoose yang bentrok
+export interface IBooking extends Omit<Document, "_id"> {
   _id: string;
   userId: string;
   hotelId: string;

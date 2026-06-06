@@ -1,7 +1,7 @@
 import mongoose, { Document } from "mongoose";
 
 export interface IAnalytics extends Document {
-  _id: string;
+  _id: mongoose.Types.ObjectId; // <-- Sudah diperbaiki dari string menjadi ObjectId
   date: Date;
   metrics: {
     totalBookings: number;

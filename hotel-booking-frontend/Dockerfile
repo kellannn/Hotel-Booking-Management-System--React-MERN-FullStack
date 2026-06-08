@@ -17,16 +17,18 @@ COPY hotel-booking-frontend/ ./
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
-# TAMBAHAN BARU: Menerima suntikan Kunci Stripe dari GitHub Actions
 ARG VITE_STRIPE_PUB_KEY
 ENV VITE_STRIPE_PUB_KEY=$VITE_STRIPE_PUB_KEY
 
 # 4. Trik DevOps: Jalankan vite build langsung untuk bypass strict tsc check
-# agar prototype pipeline minggu ini sukses divalidasi tanpa kegagalan tipe data
 RUN npx vite build
 
 # Stage 2: Serve menggunakan Nginx untuk Production
 FROM nginx:stable-alpine
+
+# 🔴 SEKARANG DI SINI: Menyuntikkan aturan try_files agar React Router tidak 404 saat di-refresh
+RUN echo 'server { listen 80; location / { root /usr/share/nginx/html; index index.html index.htm; try_files $uri $uri/ /index.html; } }' > /etc/nginx/conf.d/default.conf
+
 COPY --from=build /app/hotel-booking-frontend/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]

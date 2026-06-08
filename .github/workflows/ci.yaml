@@ -1,4 +1,4 @@
-name: Hotel Booking CI/CD - Kelompok 16 Week 3 Prototype
+name: Hotel Booking CI/CD - Kelompok 16 Week 4 Real Pipeline
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  pipeline-validation:
+  pipeline-deployment:
     runs-on: ubuntu-latest
 
     steps:
@@ -41,31 +41,51 @@ jobs:
         echo "Validasi Hak Akses Admin, Manager, dan Customer: PASSED!"
 
     # ==========================================
-    # STAGE 3: BUILD & CONTAINERIZATION (REAL CHECK)
+    # STAGE 3: BUILD & CONTAINERIZATION (LOCAL VALIDATION)
     # ==========================================
     - name: 6. Validate Backend Dockerfile Build
       run: |
-        # Perintah ini akan menguji secara nyata apakah Dockerfile backend kalian valid 
-        # dengan build context di root sesuai komentar di kode kalian
         docker build -f hotel-booking-backend/Dockerfile -t hotel-booking-backend:test .
         echo "Docker build untuk backend sukses divalidasi tanpa error!"
       
     - name: 6.5 Validate Frontend Dockerfile Build
       run: |
-        # Perhatikan tanda titik (.) di paling ujung perintah ini
         docker build -f hotel-booking-frontend/Dockerfile -t hotel-booking-frontend:test .
         echo "Docker build untuk frontend sukses divalidasi tanpa error!"
 
     # ==========================================
-    # STAGE 4 & 5: STAGING & PRODUCTION (MOCK-UP)
+    # STAGE 4: BUILD & PUSH REAL IMAGES TO AZURE REGISTRY
     # ==========================================
-    - name: 7. Push Container Image to Azure Registry (Mock-up)
-      run: |
-        echo "Menghubungkan ke Azure Container Registry kelompok16.azurecr.io..."
-        echo "Sukses melakukan push image 'hotel-booking-backend:latest' ke ACR."
+    - name: 7. Login to Azure Container Registry
+      uses: azure/docker-login@v1
+      with:
+        login-server: kelompok16pso.azurecr.io
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
 
-    - name: 8. Deploy to Azure App Service (Mock-up)
+    - name: 7.5 Build and Push Real Images to ACR
       run: |
-        echo "Memicu slot deployment di Azure App Service..."
-        echo "Melakukan swapping dari Staging ke Production slot..."
-        echo "Prototpe Sukses: Aplikasi Kelompok 16 Berhasil Live!"
+        # Build dan Push Backend menggunakan SHA commit Git sebagai tag versi unik
+        docker build -f hotel-booking-backend/Dockerfile -t kelompok16pso.azurecr.io/hotel-booking-backend:${{ github.sha }} .
+        docker push kelompok16pso.azurecr.io/hotel-booking-backend:${{ github.sha }}
+        
+        # Build dan Push Frontend menggunakan SHA commit Git sebagai tag versi unik
+        docker build -f hotel-booking-frontend/Dockerfile -t kelompok16pso.azurecr.io/hotel-booking-frontend:${{ github.sha }} .
+        docker push kelompok16pso.azurecr.io/hotel-booking-frontend:${{ github.sha }}
+
+    # ==========================================
+    # STAGE 5: REAL DEPLOYMENT TO AZURE APP SERVICE
+    # ==========================================
+    - name: 8. Deploy Backend to Azure App Service
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: 'kelompok16-hotel-backend'
+        publish-profile: ${{ secrets.AZURE_BACKEND_PUBLISH_PROFILE }}
+        images: 'kelompok16pso.azurecr.io/hotel-booking-backend:${{ github.sha }}'
+
+    - name: 8.5 Deploy Frontend to Azure App Service
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: 'kelompok16-hotel-frontend'
+        publish-profile: ${{ secrets.AZURE_FRONTEND_PUBLISH_PROFILE }}
+        images: 'kelompok16pso.azurecr.io/hotel-booking-frontend:${{ github.sha }}'

@@ -52,7 +52,8 @@ jobs:
       
     - name: 6.5 Validate Frontend Dockerfile Build
       run: |
-        docker build -f hotel-booking-frontend/Dockerfile -t hotel-booking-frontend:test hotel-booking-frontend/
+        # Perhatikan tanda titik (.) di paling ujung perintah ini
+        docker build -f hotel-booking-frontend/Dockerfile -t hotel-booking-frontend:test .
         echo "Docker build untuk frontend sukses divalidasi tanpa error!"
 
     # ==========================================

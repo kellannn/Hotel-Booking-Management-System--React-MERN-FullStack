@@ -13,6 +13,10 @@ RUN npm install
 # 3. Salin sisa kode frontend ke dalam container
 COPY hotel-booking-frontend/ ./
 
+# SEKARANG DI SINI TEMPATNYA: Menerima suntikan URL API dari GitHub Actions
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
 # 4. Trik DevOps: Jalankan vite build langsung untuk bypass strict tsc check
 # agar prototype pipeline minggu ini sukses divalidasi tanpa kegagalan tipe data
 RUN npx vite build

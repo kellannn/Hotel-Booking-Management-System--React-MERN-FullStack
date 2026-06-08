@@ -49,6 +49,11 @@ jobs:
         # dengan build context di root sesuai komentar di kode kalian
         docker build -f hotel-booking-backend/Dockerfile -t hotel-booking-backend:test .
         echo "Docker build untuk backend sukses divalidasi tanpa error!"
+      
+    - name: 6.5 Validate Frontend Dockerfile Build
+      run: |
+        docker build -f hotel-booking-frontend/Dockerfile -t hotel-booking-frontend:test hotel-booking-frontend/
+        echo "Docker build untuk frontend sukses divalidasi tanpa error!"
 
     # ==========================================
     # STAGE 4 & 5: STAGING & PRODUCTION (MOCK-UP)

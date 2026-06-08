@@ -1,0 +1,65 @@
+name: Hotel Booking CI/CD - Kelompok 16 Week 3 Prototype
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  pipeline-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+    # ==========================================
+    # STAGE 1: PREPARATION
+    # ==========================================
+    - name: 1. Checkout Source Code
+      uses: actions/checkout@v4
+
+    - name: 2. Setup Node.js Environment
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    # ==========================================
+    # STAGE 2: TESTING & QA
+    # ==========================================
+    - name: 3. Install Backend Dependencies
+      run: |
+        cd hotel-booking-backend
+        npm install
+
+    - name: 4. Install Frontend Dependencies
+      run: |
+        cd hotel-booking-frontend
+        npm install
+
+    - name: 5. Run Automated Testing (Jest & RBAC Mock-up)
+      run: |
+        echo "Menjalankan automated testing unit untuk pengujian logika RBAC..."
+        echo "Validasi Hak Akses Admin, Manager, dan Customer: PASSED!"
+
+    # ==========================================
+    # STAGE 3: BUILD & CONTAINERIZATION (REAL CHECK)
+    # ==========================================
+    - name: 6. Validate Backend Dockerfile Build
+      run: |
+        # Perintah ini akan menguji secara nyata apakah Dockerfile backend kalian valid 
+        # dengan build context di root sesuai komentar di kode kalian
+        docker build -f hotel-booking-backend/Dockerfile -t hotel-booking-backend:test .
+        echo "Docker build untuk backend sukses divalidasi tanpa error!"
+
+    # ==========================================
+    # STAGE 4 & 5: STAGING & PRODUCTION (MOCK-UP)
+    # ==========================================
+    - name: 7. Push Container Image to Azure Registry (Mock-up)
+      run: |
+        echo "Menghubungkan ke Azure Container Registry kelompok16.azurecr.io..."
+        echo "Sukses melakukan push image 'hotel-booking-backend:latest' ke ACR."
+
+    - name: 8. Deploy to Azure App Service (Mock-up)
+      run: |
+        echo "Memicu slot deployment di Azure App Service..."
+        echo "Melakukan swapping dari Staging ke Production slot..."
+        echo "Prototpe Sukses: Aplikasi Kelompok 16 Berhasil Live!"

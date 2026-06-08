@@ -69,12 +69,13 @@ jobs:
         docker build -f hotel-booking-backend/Dockerfile -t kelompok16pso.azurecr.io/hotel-booking-backend:${{ github.sha }} .
         docker push kelompok16pso.azurecr.io/hotel-booking-backend:${{ github.sha }}
         
-        # 2. Build Frontend dengan menyuntikkan URL API Azure Real via --build-arg
+        # 2. Build Frontend dengan menyuntikkan URL API DAN Kunci Stripe sekaligus via --build-arg
         docker build -f hotel-booking-frontend/Dockerfile \
           --build-arg VITE_API_BASE_URL=https://kelompok16-hotel-backend-bugsabada3dpafb0.indonesiacentral-01.azurewebsites.net \
+          --build-arg VITE_STRIPE_PUB_KEY=pk_test_dummy12345 \
           -t kelompok16pso.azurecr.io/hotel-booking-frontend:${{ github.sha }} .
         
-        # 3. Push Frontend Image yang baru ke ACR
+        # 3. Push Frontend Image yang sudah lengkap (API + Stripe) ke Azure ACR
         docker push kelompok16pso.azurecr.io/hotel-booking-frontend:${{ github.sha }}
 
     # ==========================================

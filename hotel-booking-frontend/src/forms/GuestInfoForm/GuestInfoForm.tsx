@@ -170,7 +170,7 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
               <span>Booking Summary</span>
             </div>
             <Badge variant="outline" className="text-sm">
-              £{pricePerNight}/night
+              ${pricePerNight}/night
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -181,7 +181,7 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">
-                  £{pricePerNight} × {pricingData?.totalNights || numberOfNights} night
+                  ${pricePerNight} × {pricingData?.totalNights || numberOfNights} night
                   {(pricingData?.totalNights || numberOfNights) > 1 ? "s" : ""}
                 </span>
               </div>
@@ -190,7 +190,7 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
                   {isPricingLoading ? (
                     <span className="text-sm font-normal text-gray-400 animate-pulse">Recalculating...</span>
                   ) : (
-                    `£${pricingData?.totalCost || fallbackTotalPrice}`
+                    `$${pricingData?.totalCost || fallbackTotalPrice}`
                   )}
                 </div>
                 <div className="text-xs text-gray-500">Total Price</div>
@@ -200,7 +200,7 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
             {/* Tampilan rincian skema kenaikan tarif akhir pekan */}
             {pricingData?.breakdown && (
               <div className="text-xs text-indigo-600 bg-indigo-50/70 p-2 rounded border border-indigo-100 italic">
-                * {pricingData.breakdown.replace("Rp", "£")}
+                * {pricingData.breakdown.replace("Rp", "$")}
               </div>
             )}
           </div>

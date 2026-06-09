@@ -39,8 +39,8 @@ const LatestDestinationCard = ({ hotel }: Props) => {
           <div className={`${hotel.hasDynamicPricing ? 'bg-purple-600' : 'bg-primary-600'} text-white rounded-full px-3 py-1 shadow-md transition-colors duration-300`}>
             <span className="text-sm font-bold">
               {hotel.hasDynamicPricing && hotel.dynamicTotalCost
-                ? `£${hotel.dynamicTotalCost} Total`
-                : `£${hotel.pricePerNight}/night`}
+                ? `$${hotel.dynamicTotalCost} Total`
+                : `$${hotel.pricePerNight}/night`}
             </span>
           </div>
         </div>

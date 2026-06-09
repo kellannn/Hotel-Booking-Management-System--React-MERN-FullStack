@@ -50,7 +50,7 @@ const SearchResultsCard = ({ hotel }: Props) => {
           {/* Overlay Badges */}
           <div className="absolute top-4 left-4 flex flex-col space-y-2">
             <div className={`${hotel.hasDynamicPricing ? 'bg-purple-600' : 'bg-primary-600'} text-white rounded-full px-3 py-1 transition-colors duration-300`}>
-              <span className="text-sm font-bold">£{hotel.pricePerNight}/night</span>
+              <span className="text-sm font-bold">${hotel.pricePerNight}/night</span>
             </div>
             {hotel.isFeatured && (
               <div className="bg-yellow-500 text-white rounded-full px-3 py-1">
@@ -173,7 +173,7 @@ const SearchResultsCard = ({ hotel }: Props) => {
                   </span>
                   <div className="flex items-baseline space-x-1.5">
                     <span className="text-3xl font-black text-purple-700">
-                      £{hotel.dynamicTotalCost}
+                      ${hotel.dynamicTotalCost}
                     </span>
                     <span className="text-xs text-gray-400 font-medium">
                       (Termasuk weekend)
@@ -187,7 +187,7 @@ const SearchResultsCard = ({ hotel }: Props) => {
                   </span>
                   <div className="flex items-baseline space-x-1">
                     <span className="text-2xl font-bold text-gray-900">
-                      £{hotel.pricePerNight}
+                      ${hotel.pricePerNight}
                     </span>
                     <span className="text-xs text-gray-500 font-medium">/malam</span>
                   </div>

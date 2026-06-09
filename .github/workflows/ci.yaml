@@ -40,7 +40,7 @@ jobs:
         echo "Menjalankan automated testing unit untuk pengujian logika RBAC..."
         echo "Validasi Hak Akses Admin, Manager, dan Customer: PASSED!"
         
-    - name: 🧪 UJI COBA: Cek Apakah GitHub Secret Terbaca
+    - name: "🧪 UJI COBA: Cek Apakah GitHub Secret Terbaca"
       run: |
         if [ -z "${{ secrets.STRIPE_WEB_PUB_KEY }}" ]; then
           echo "❌ ERROR: GitHub Secret KOSONG! Periksa kembali penulisan nama di GitHub."
@@ -48,6 +48,7 @@ jobs:
         else
           echo "✅ SUKSES: GitHub Secret berhasil dideteksi dan siap disuntikkan ke Vite!"
         fi
+
     # ==========================================
     # STAGE 3: BUILD & CONTAINERIZATION (LOCAL VALIDATION)
     # ==========================================

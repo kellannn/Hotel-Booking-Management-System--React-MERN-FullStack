@@ -34,7 +34,7 @@ const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
 
 if (missingEnvVars.length > 0) {
   console.error("❌ Missing required environment variables:");
-  missingEnvVars.forEach((envVar) => console.error(`   - ${envVar}`));
+  missingEnvVars.forEach((envVar) => console.error(` - ${envVar}`));
   process.exit(1);
 }
 
@@ -42,7 +42,7 @@ console.log("✅ All required environment variables are present");
 console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
 console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || "Not set"}`);
 console.log(
-  `🔗 Backend URL: ${process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`}`
+  `🔗 Backend URL: ${process.env.BACKEND_URL || \`http://localhost:\${process.env.PORT || 5001}\`}`
 );
 
 cloudinary.config({
@@ -67,7 +67,6 @@ const connectDB = async () => {
   }
 };
 
-// Handle MongoDB connection events
 mongoose.connection.on("disconnected", () => {
   console.warn("⚠️  MongoDB disconnected. Attempting to reconnect...");
 });
@@ -87,118 +86,94 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
-// Trust proxy for production (fixes rate limiting issues)
+// ========================================================================
+// STEP 1: CORS SETUP (Wajib ditaruh paling atas sebelum Rate Limiter & Router)
+// ========================================================================
+// Bersihkan trailing slash dari FRONTEND_URL agar pencocokan string stabil
+const frontendUrlFromEnv = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.replace(/\/$/, "") : "";
+
+const allowedOrigins = [
+  frontendUrlFromEnv,
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "https://mern-booking-hotel.netlify.app",
+  "https://hotel-mern-booking.vercel.app",
+].filter((origin): origin is string => Boolean(origin));
+
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+
+    const cleanOrigin = origin.replace(/\/$/, "");
+
+    // FIX: Otomatis izinkan jika berasal dari domain Netlify, Vercel, maupun Azure Cloud
+    if (
+      cleanOrigin.includes("netlify.app") || 
+      cleanOrigin.includes("vercel.app") ||
+      cleanOrigin.includes("azurewebsites.net")
+    ) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(cleanOrigin)) {
+      return callback(null, true);
+    }
+
+    if (process.env.NODE_ENV === "development") {
+      console.log("CORS blocked origin:", origin);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+  optionsSuccessStatus: 204,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // Preflight handler global
+
+// Trust proxy untuk production (Wajib ditaruh sebelum Rate Limiter)
 app.set("trust proxy", 1);
 
-// Rate limiting - more lenient for payment endpoints
+// ========================================================================
+// STEP 2: RATE LIMITING & OPTIMIZATION MIDDLEWARES
+// ========================================================================
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Increased limit for general requests
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   message: "Too many requests from this IP, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-// Special limiter for payment endpoints
 const paymentLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // Higher limit for payment requests
+  windowMs: 15 * 60 * 1000,
+  max: 50,
   message: "Too many payment requests, please try again later.",
   standardHeaders: true,
   legacyHeaders: false,
 });
 
-app.use("/api/", generalLimiter);
 app.use("/api/hotels/*/bookings/payment-intent", paymentLimiter);
+app.use("/api/", generalLimiter);
 
-// Compression middleware
 app.use(compression());
-
-// Logging middleware
 app.use(morgan("combined"));
 
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  "http://localhost:5174",
-  "http://localhost:5173",
-  "https://mern-booking-hotel.netlify.app",
-  "https://mern-booking-hotel.netlify.app/",
-  "https://hotel-mern-booking.vercel.app",
-  "https://hotel-mern-booking.vercel.app/",
-].filter((origin): origin is string => Boolean(origin));
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-
-      // Allow all Netlify and Vercel preview URLs
-      if (origin.includes("netlify.app") || origin.includes("vercel.app")) {
-        return callback(null, true);
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      // Log blocked origins in development
-      if (process.env.NODE_ENV === "development") {
-        console.log("CORS blocked origin:", origin);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-    optionsSuccessStatus: 204,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Cookie",
-      "X-Requested-With",
-    ],
-  })
-);
-// Explicit preflight handler for all routes
-app.options(
-  "*",
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-
-      // Allow all Netlify and Vercel preview URLs
-      if (origin.includes("netlify.app") || origin.includes("vercel.app")) {
-        return callback(null, true);
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-    optionsSuccessStatus: 204,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Cookie",
-      "X-Requested-With",
-    ],
-  })
-);
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
-  // Ensure Vary header for CORS
   res.header("Vary", "Origin");
   next();
 });
 
+// ========================================================================
+// STEP 3: API ROUTES
+// ========================================================================
 app.get("/", (req: Request, res: Response) => {
   res.send("<h1>Hotel Booking Backend API is running 🚀</h1>");
 });
@@ -212,7 +187,6 @@ app.use("/api/bookings", bookingsManagementRoutes);
 app.use("/api/health", healthRoutes);
 app.use("/api/business-insights", businessInsightsRoutes);
 
-// Swagger API Documentation
 app.use(
   "/api-docs",
   swaggerUi.serve,
@@ -222,11 +196,8 @@ app.use(
   })
 );
 
-// Default 5001: macOS AirPlay (Control Center) often binds 5000. Override via PORT in .env.
 const PORT = process.env.PORT || 5001;
-
-const backendBaseUrl =
-  process.env.BACKEND_URL?.replace(/\/$/, "") || `http://localhost:${PORT}`;
+const backendBaseUrl = process.env.BACKEND_URL?.replace(/\/$/, "") || `http://localhost:${PORT}`;
 
 const server = app.listen(PORT, () => {
   console.log("🚀 ============================================");
@@ -238,13 +209,11 @@ const server = app.listen(PORT, () => {
   console.log("🚀 ============================================");
 });
 
-// Graceful Shutdown Handler
+// Graceful Shutdown
 const gracefulShutdown = (signal: string) => {
   console.log(`\n⚠️  ${signal} received. Starting graceful shutdown...`);
-
   server.close(async () => {
     console.log("🔒 HTTP server closed");
-
     try {
       await mongoose.connection.close();
       console.log("🔒 MongoDB connection closed");
@@ -256,25 +225,23 @@ const gracefulShutdown = (signal: string) => {
     }
   });
 
-  // Force shutdown after 30 seconds
   setTimeout(() => {
     console.error("⚠️  Forced shutdown after timeout");
     process.exit(1);
   }, 30000);
 };
 
-// Handle shutdown signals
 process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
-// Handle uncaught exceptions
 process.on("uncaughtException", (error) => {
   console.error("❌ Uncaught Exception:", error);
   gracefulShutdown("UNCAUGHT_EXCEPTION");
 });
 
-// Handle unhandled promise rejections
 process.on("unhandledRejection", (reason, promise) => {
   console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
   gracefulShutdown("UNHANDLED_REJECTION");
 });
+
+export default app;

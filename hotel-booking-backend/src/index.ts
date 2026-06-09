@@ -42,7 +42,7 @@ console.log("✅ All required environment variables are present");
 console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
 console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || "Not set"}`);
 console.log(
-  `🔗 Backend URL: ${process.env.BACKEND_URL || \`http://localhost:\${process.env.PORT || 5001}\`}`
+  `🔗 Backend URL: ${process.env.BACKEND_URL || `http://localhost:\${process.env.PORT || 5001}`}`
 );
 
 cloudinary.config({
@@ -244,4 +244,4 @@ process.on("unhandledRejection", (reason, promise) => {
   gracefulShutdown("UNHANDLED_REJECTION");
 });
 
-export default app;
+export default app;git status

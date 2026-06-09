@@ -10,13 +10,12 @@ const router = express.Router();
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_SECRET;
-// Local dev: Vite on 5174. OAuth success/error redirects use this origin (not a Google redirect URI).
+
 const FRONTEND_URL = (process.env.FRONTEND_URL || "http://localhost:5174").replace(
   /\/$/,
   ""
 );
-// Google Console "Authorized redirect URI" must match exactly: {BACKEND_URL}/api/auth/callback/google
-// Default PORT 5001 (5000 blocked on many Macs). Keep PORT, VITE_API_BASE_URL, Google redirect in sync.
+
 const BACKEND_URL = (
   process.env.BACKEND_URL ||
   `http://localhost:${process.env.PORT || 5001}`
@@ -25,10 +24,9 @@ const BACKEND_URL = (
 /**
  * @swagger
  * /api/auth/google:
- *   get:
- *     summary: Initiate Google OAuth
- *     description: Redirects user to Google sign-in
- *     tags: [Authentication]
+ * get:
+ * summary: Initiate Google OAuth
+ * tags: [Authentication]
  */
 router.get("/google", (req: Request, res: Response) => {
   if (!GOOGLE_CLIENT_ID) {
@@ -44,10 +42,9 @@ router.get("/google", (req: Request, res: Response) => {
 /**
  * @swagger
  * /api/auth/callback/google:
- *   get:
- *     summary: Google OAuth callback
- *     description: Handles redirect from Google, creates/logs in user
- *     tags: [Authentication]
+ * get:
+ * summary: Google OAuth callback
+ * tags: [Authentication]
  */
 router.get("/callback/google", async (req: Request, res: Response) => {
   const { code, error } = req.query;
@@ -145,43 +142,9 @@ router.get("/callback/google", async (req: Request, res: Response) => {
 /**
  * @swagger
  * /api/auth/login:
- *   post:
- *     summary: User login
- *     description: Authenticate user with email and password
- *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 description: User's email address
- *               password:
- *                 type: string
- *                 minLength: 6
- *                 description: User's password
- *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 userId:
- *                   type: string
- *                   description: User ID
- *       400:
- *         description: Invalid credentials or validation error
- *       500:
- *         description: Server error
+ * post:
+ * summary: User login
+ * tags: [Authentication]
  */
 router.post(
   "/login",
@@ -218,11 +181,20 @@ router.post(
         }
       );
 
-      // Return JWT token in response body for localStorage storage
+      // FIX: Menembakkan cookie auth_token yang aman untuk Cross-Site Azure
+      res.cookie("auth_token", token, {
+        httpOnly: true,
+        secure: true, 
+        sameSite: "none", 
+        maxAge: 86400000,
+        path: "/",
+      });
+
+      // Tetap kembalikan JSON body untuk kompatibilitas jika frontend membaca data user
       res.status(200).json({
         userId: user._id,
         message: "Login successful",
-        token: token, // JWT token in response body
+        token: token, 
         user: {
           id: user._id,
           email: user.email,
@@ -240,25 +212,9 @@ router.post(
 /**
  * @swagger
  * /api/auth/validate-token:
- *   get:
- *     summary: Validate authentication token
- *     description: Validate the current user's authentication token
- *     tags: [Authentication]
- *     security:
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: Token is valid
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 userId:
- *                   type: string
- *                   description: User ID
- *       401:
- *         description: Token is invalid or expired
+ * get:
+ * summary: Validate authentication token
+ * tags: [Authentication]
  */
 router.get("/validate-token", verifyToken, (req: Request, res: Response) => {
   res.status(200).send({ userId: req.userId });
@@ -267,24 +223,21 @@ router.get("/validate-token", verifyToken, (req: Request, res: Response) => {
 /**
  * @swagger
  * /api/auth/logout:
- *   post:
- *     summary: User logout
- *     description: Logout user by clearing authentication cookie
- *     tags: [Authentication]
- *     responses:
- *       200:
- *         description: Logout successful
+ * post:
+ * summary: User logout
+ * tags: [Authentication]
  */
 router.post("/logout", (req: Request, res: Response) => {
-  res.cookie("session_id", "", {
+  // FIX: Membersihkan nama cookie yang benar ("auth_token" bukan "session_id")
+  res.cookie("auth_token", "", {
     expires: new Date(0),
     maxAge: 0,
-    httpOnly: false,
+    httpOnly: true,
     secure: true,
     sameSite: "none",
     path: "/",
   });
-  res.send();
+  res.status(200).send({ message: "Logout successful" });
 });
 
 export default router;

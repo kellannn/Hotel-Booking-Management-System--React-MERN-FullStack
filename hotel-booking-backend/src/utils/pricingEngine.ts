@@ -12,7 +12,7 @@ export const calculateDynamicTotalCost = (
 
   while (current < end) {
     const dayOfWeek = current.getDay(); 
-    const isWeekend = dayOfWeek === 5 || dayOfWeek === 6; // 5 = Jumat, 6 = Sabtu
+    const isWeekend = dayOfWeek === 6 || dayOfWeek === 0; // 6 = Sabtu, 0 = Minggu
 
     if (isWeekend) {
       totalCost += basePricePerNight * weekendMultiplier;

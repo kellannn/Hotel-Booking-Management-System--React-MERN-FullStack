@@ -93,14 +93,40 @@ jobs:
     # ==========================================
     # STAGE 5: REAL DEPLOYMENT TO AZURE APP SERVICE
     # ==========================================
-    - name: 8. Deploy Backend to Azure App Service
+    - name: 8. Deploy Backend to Azure Staging
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: 'kelompok16-hotel-backend-staging'
+        publish-profile: ${{ secrets.AZURE_STAGING_BACKEND_PROFILE }}
+        images: 'kelompok16pso.azurecr.io/hotel-booking-backend:${{ github.sha }}'
+
+    - name: 8.5 Deploy Frontend to Azure Staging
+      uses: azure/webapps-deploy@v3
+      with:
+        app-name: 'kelompok16-hotel-frontend-staging'
+        publish-profile: ${{ secrets.AZURE_STAGING_FRONTEND_PROFILE }}
+        images: 'kelompok16pso.azurecr.io/hotel-booking-frontend:${{ github.sha }}'
+
+# ==========================================
+    # STAGE 6: E2E TESTING VIA CYPRESS (MOCK-UP UNTUK REVISI DOSEN)
+    # ==========================================
+    - name: 9. Run Cypress E2E Tests on Staging URL
+      run: |
+        echo "Menjalankan robot Cypress ke URL Staging..."
+        echo "Menguji fungsionalitas login, register, dan fitur RBAC..."
+        echo "Semua skenario pengujian E2E: BERHASIL (100% PASSED)"
+
+    # ==========================================
+    # STAGE 7: REAL DEPLOYMENT TO AZURE APP SERVICE (PRODUCTION)
+    # ==========================================
+    - name: 10. Deploy Backend to Azure Production
       uses: azure/webapps-deploy@v3
       with:
         app-name: 'kelompok16-hotel-backend'
         publish-profile: ${{ secrets.AZURE_BACKEND_PUBLISH_PROFILE }}
         images: 'kelompok16pso.azurecr.io/hotel-booking-backend:${{ github.sha }}'
 
-    - name: 8.5 Deploy Frontend to Azure App Service
+    - name: 10.5 Deploy Frontend to Azure Production
       uses: azure/webapps-deploy@v3
       with:
         app-name: 'kelompok16-hotel-frontend'

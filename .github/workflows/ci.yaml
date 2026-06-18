@@ -108,13 +108,14 @@ jobs:
         images: 'kelompok16pso.azurecr.io/hotel-booking-frontend:${{ github.sha }}'
 
 # ==========================================
-    # STAGE 6: E2E TESTING VIA CYPRESS (MOCK-UP UNTUK REVISI DOSEN)
+    # STAGE 6: REAL E2E TESTING VIA CYPRESS
     # ==========================================
-    - name: 9. Run Cypress E2E Tests on Staging URL
-      run: |
-        echo "Menjalankan robot Cypress ke URL Staging..."
-        echo "Menguji fungsionalitas login, register, dan fitur RBAC..."
-        echo "Semua skenario pengujian E2E: BERHASIL (100% PASSED)"
+    - name: 9. Run Real Cypress E2E Tests on Staging URL
+      uses: cypress-io/github-action@v6
+      with:
+        working-directory: ./hotel-booking-frontend
+        config: baseUrl=https://kelompok16-hotel-frontend-staging-frhmdpcuakc7edha.indonesiacentral-01.azurewebsites.net
+        browser: chrome
 
     # ==========================================
     # STAGE 7: REAL DEPLOYMENT TO AZURE APP SERVICE (PRODUCTION)

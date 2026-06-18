@@ -35,12 +35,12 @@ jobs:
         cd hotel-booking-frontend
         npm install
 
-    - name: 5. Run Automated Testing (Jest & RBAC Mock-up)
+    - name: 5. Run Backend Unit Tests (Jest)
       run: |
-        echo "Menjalankan automated testing unit untuk pengujian logika RBAC..."
-        echo "Validasi Hak Akses Admin, Manager, dan Customer: PASSED!"
+        cd hotel-booking-backend
+        npm test
         
-    - name: "UJI COBA: Cek Apakah GitHub Secret Terbaca"
+    - name: 6. Verify Required Secrets
       run: |
         if [ -z "${{ secrets.STRIPE_WEB_PUB_KEY }}" ]; then
           echo "ERROR: GitHub Secret KOSONG! Periksa kembali penulisan nama di GitHub."
@@ -52,12 +52,12 @@ jobs:
     # ==========================================
     # STAGE 3: BUILD & CONTAINERIZATION (LOCAL VALIDATION)
     # ==========================================
-    - name: 6. Validate Backend Dockerfile Build
+    - name: 7. Validate Backend Dockerfile Build
       run: |
         docker build -f hotel-booking-backend/Dockerfile -t hotel-booking-backend:test .
         echo "Docker build untuk backend sukses divalidasi tanpa error!"
       
-    - name: 6.5 Validate Frontend Dockerfile Build
+    - name: 7.5 Validate Frontend Dockerfile Build
       run: |
         docker build -f hotel-booking-frontend/Dockerfile \
           --build-arg VITE_API_BASE_URL=http://localhost:5001 \
@@ -68,14 +68,14 @@ jobs:
     # ==========================================
     # STAGE 4: BUILD & PUSH REAL IMAGES TO AZURE REGISTRY
     # ==========================================
-    - name: 7. Login to Azure Container Registry
+    - name: 8. Login to Azure Container Registry
       uses: azure/docker-login@v1
       with:
         login-server: kelompok16pso.azurecr.io
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
-    - name: 7.5 Build and Push Real Images to ACR
+    - name: 8.5 Build and Push Real Images to ACR
       run: |
         # 1. Build dan Push Backend menggunakan SHA commit Git sebagai tag versi unik
         docker build -f hotel-booking-backend/Dockerfile -t kelompok16pso.azurecr.io/hotel-booking-backend:${{ github.sha }} .
@@ -93,14 +93,14 @@ jobs:
     # ==========================================
     # STAGE 5: REAL DEPLOYMENT TO AZURE APP SERVICE
     # ==========================================
-    - name: 8. Deploy Backend to Azure Staging
+    - name: 9. Deploy Backend to Azure Staging
       uses: azure/webapps-deploy@v3
       with:
         app-name: 'kelompok16-hotel-backend-staging'
         publish-profile: ${{ secrets.AZURE_STAGING_BACKEND_PROFILE }}
         images: 'kelompok16pso.azurecr.io/hotel-booking-backend:${{ github.sha }}'
 
-    - name: 8.5 Deploy Frontend to Azure Staging
+    - name: 9.5 Deploy Frontend to Azure Staging
       uses: azure/webapps-deploy@v3
       with:
         app-name: 'kelompok16-hotel-frontend-staging'
@@ -110,7 +110,7 @@ jobs:
 # ==========================================
     # STAGE 6: REAL E2E TESTING VIA CYPRESS
     # ==========================================
-    - name: 9. Run Real Cypress E2E Tests on Staging URL
+    - name: 10. Run Real Cypress E2E Tests on Staging URL
       uses: cypress-io/github-action@v6
       with:
         working-directory: ./hotel-booking-frontend
@@ -120,14 +120,14 @@ jobs:
     # ==========================================
     # STAGE 7: REAL DEPLOYMENT TO AZURE APP SERVICE (PRODUCTION)
     # ==========================================
-    - name: 10. Deploy Backend to Azure Production
+    - name: 11. Deploy Backend to Azure Production
       uses: azure/webapps-deploy@v3
       with:
         app-name: 'kelompok16-hotel-backend'
         publish-profile: ${{ secrets.AZURE_BACKEND_PUBLISH_PROFILE }}
         images: 'kelompok16pso.azurecr.io/hotel-booking-backend:${{ github.sha }}'
 
-    - name: 10.5 Deploy Frontend to Azure Production
+    - name: 11.5 Deploy Frontend to Azure Production
       uses: azure/webapps-deploy@v3
       with:
         app-name: 'kelompok16-hotel-frontend'

@@ -24,7 +24,8 @@ describe('Frontend Staging E2E Testing - Kelompok 16', () => {
     cy.contains('My Bookings', { timeout: 10000 }).should('be.visible');
 
     // ---- LANGKAH 2: PENCARIAN DENGAN TANGGAL VALID ----
-    cy.visit('/'); // Kembali ke home untuk memastikan search bar bersih
+    cy.contains('MernHolidays').click();
+    cy.url().should('not.include', '/sign-in');
     cy.get('input[placeholder*="going"]').type('Surabaya');
 
     // Targetkan input Check-in dan Check-out
